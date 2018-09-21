@@ -498,14 +498,14 @@ describe(@"EZRNode", ^{
             value2.value = @"test";
             expect(value1.value).to(equal(@"test"));
         });
-    
+        
         it(@"can stop syncing", ^{
             EZRMutableNode *value1 = [EZRMutableNode value:@1];
             EZRMutableNode *value2 = [EZRMutableNode value:@2];
             
             id<EZRCancelable> cancelable = [value1 syncWith:value2];
             expect(value2.value).to(equal(@1));
-
+            
             value2.value = @4;
             expect(value1.value).to(equal(@4));
             
@@ -517,7 +517,7 @@ describe(@"EZRNode", ^{
             value2.value = @"test";
             expect(value1.value).notTo(equal(@"test"));
         });
-    
+        
         it(@"can sync with transform block, and revert block", ^{
             EZRMutableNode<NSNumber *> *value1 = EZRMutableNode.new;
             EZRMutableNode<NSString *> *value2 = EZRMutableNode.new;
@@ -534,7 +534,7 @@ describe(@"EZRNode", ^{
             value1.value = @20;
             expect(value2.value).to(equal(@"40"));
         });
-    
+        
         //  a  <---> b  <--> C
         it(@"supports multiple sync targets on a single node", ^{
             EZRMutableNode<NSNumber *> *nodea = EZRMutableNode.new;
@@ -547,7 +547,7 @@ describe(@"EZRNode", ^{
             expect(nodec.value).to(equal(@10));
             
         });
-    
+        
         //   a  <---> b  <--> C
         it(@"can be released correctly when cancelling the sync link", ^{
             expectCheckTool(^(CheckReleaseTool *checkTool) {
@@ -580,7 +580,7 @@ describe(@"EZRNode", ^{
             expect(nodec.value).to(equal(@10));
             
         });
-    
+        
         // a---------b
         //   \     /
         //    \  /
@@ -598,7 +598,7 @@ describe(@"EZRNode", ^{
                 [checkTool checkObj:nodec];
             }).notTo(beReleasedCorrectly());
         });
-    
+        
         // a---------b
         //   \     /
         //    \  /
@@ -657,7 +657,7 @@ describe(@"EZRNode", ^{
             
             expect(mappedValue).to(receive(@[@0, @0, @1,  @0, @1, @2]));
         });
-    
+        
         it(@"should raise an exception when the block return value isn't an EZRNode", ^{
             EZRMutableNode<NSNumber *> *numbEZRNode = EZRMutableNode.new;
             EZRNode<NSNumber *> *mappedValue __attribute__((unused)) = [numbEZRNode flattenMap:^EZRNode * _Nullable(NSNumber * _Nullable next) {
@@ -668,7 +668,7 @@ describe(@"EZRNode", ^{
                 numbEZRNode.value = @1;
             }).to(raiseException().named(EZRNodeExceptionName).reason(EZRExceptionReason_FlattenOrFlattenMapNextValueNotEZRNode));
         });
-    
+        
         it(@"should work correctly in a flattened cycle", ^{
             EZRMutableNode<NSNumber *> *node = [EZRMutableNode new];
             EZRMutableNode<NSNumber *> *insideNode = [EZRMutableNode new];
@@ -718,7 +718,7 @@ describe(@"EZRNode", ^{
             node.value = [EZRNode new];
             expect(flattenedNode).to(beEmptyValue());
         });
-    
+        
         it(@"can be released correctly", ^{
             expectCheckTool(^(CheckReleaseTool *checkTool) {
                 EZRNode<NSNumber *> *numbEZRNode = EZRNode.new;
@@ -751,7 +751,7 @@ describe(@"EZRNode", ^{
             value2.value = @5;
             expect(flattenValue).to(receive(@[@1, @2, @3, @4, @5]));
         });
-    
+        
         it(@"can change upstream", ^{
             EZRMutableNode<EZRMutableNode<NSNumber *> *> *highOrderNode1 = [EZRMutableNode value:[EZRMutableNode value:@1]];
             EZRMutableNode<EZRMutableNode<NSNumber *> *> *highOrderNode2 = [EZRMutableNode new];
@@ -882,7 +882,7 @@ describe(@"EZRNode", ^{
             
             expect(value3).to(receive(@[EZTuple(@1, @"1"), EZTuple(@2, @"1"), EZTuple(@2, @"2"), EZTuple(@3, @"2")]));
         });
-    
+        
         it(@"can combine using instance method", ^{
             EZRMutableNode<NSNumber *> *value1 = [EZRMutableNode value:@1];
             EZRMutableNode<NSString *> *value2 = [EZRMutableNode value:@"1"];
@@ -900,7 +900,7 @@ describe(@"EZRNode", ^{
             
             expect(value3).to(receive(@[EZTuple(@1, @"1"), EZTuple(@2, @"1"), EZTuple(@2, @"2"), EZTuple(@3, @"2")]));
         });
-    
+        
         it(@"can support nil value", ^{
             EZRMutableNode *value1 = [EZRMutableNode value:@1];
             EZRMutableNode *value2 = [EZRMutableNode value:@"1"];
@@ -916,7 +916,7 @@ describe(@"EZRNode", ^{
             
             expect(value3).to(receive(@[EZTuple(@1, @"1"),EZTuple(nil, @"1"),EZTuple(nil, @"2"),EZTuple(@3, @"2")]));
         });
-    
+        
         it(@"can add an upstream after combining", ^{
             EZRMutableNode *valueA = [EZRMutableNode value:@1];
             EZRMutableNode *valueB = [EZRMutableNode value:@"1"];
@@ -937,7 +937,7 @@ describe(@"EZRNode", ^{
             
             expect(value).to(receive(@[EZTuple(@1, @"1"), @NO,EZTuple(@2, @"1"), @YES,EZTuple(@2, @"2"),]));
         });
-    
+        
         it(@"should not receive new value when remove an combining upstream node", ^{
             EZRNode<NSNumber *> *valueA = [EZRNode value:@1];
             EZRMutableNode<NSString *> *valueB = [EZRMutableNode value:@"1"];
@@ -955,7 +955,7 @@ describe(@"EZRNode", ^{
             valueC.value = @YES;
             expect(value).to(receive(@[EZTuple(@1, @"1", @NO)]));
         });
-    
+        
         it(@"can auto remove a deallocated upstream after combining", ^{
             EZRNode *valueA = [EZRNode value:@1];
             __weak EZRNode *valueB = nil;
@@ -973,7 +973,7 @@ describe(@"EZRNode", ^{
             }
             expect(value.value).notTo(equal(@[@1, @NO]));
         });
-    
+        
         it(@"can use EZRCombine macro define block easily", ^{
             EZRNode *value1 = [EZRNode value:@1];
             EZRNode *value2 = [EZRNode value:@1];
@@ -984,7 +984,7 @@ describe(@"EZRNode", ^{
             
             expect(value3.value).to(beNil());
         });
-    
+        
         it(@"can combine value's changes each time", ^{
             EZRMutableNode *value1 = [EZRMutableNode value:@1];
             EZRMutableNode *value2 = [EZRMutableNode value:@1];
@@ -1004,7 +1004,7 @@ describe(@"EZRNode", ^{
             expect(value3.value).to(equal(@6));
             expect(value3).to(receive(@[@2, @3, @6, @12, @6]));
         });
-    
+        
         it(@"should raise exception when set value to mapEach's upstream", ^{
             EZRMutableNode *valueA = [EZRMutableNode value:@1];
             EZRMutableNode *valueB = [EZRMutableNode value:@1];
@@ -1035,7 +1035,7 @@ describe(@"EZRNode", ^{
             node.upstreamNodes.firstObject.mutablify.value = [EZTuple18 new];
             expect(node.value).to(beNil());
         });
-    
+        
         it(@"won't get a combined value until each upstream is not empty", ^{
             EZRMutableNode<NSNumber *> *value1 = [EZRMutableNode new];
             EZRMutableNode<NSNumber *> *value2 = [EZRMutableNode new];
@@ -1054,7 +1054,7 @@ describe(@"EZRNode", ^{
             
             expect(value3).to(receive(@[EZTuple(@1, @2)]));
         });
-    
+        
         it(@"can be released correctly", ^{
             void (^check)(CheckReleaseTool *checkTool) = ^(CheckReleaseTool *checkTool) {
                 EZRNode *value1 = [EZRNode value:@1];
@@ -1087,7 +1087,7 @@ describe(@"EZRNode", ^{
             
             expect(value3).to(receive(@[@2, @3, @9, @3]));
         });
-    
+        
         it(@"can merge using instance method", ^{
             EZRMutableNode *value1 = [EZRMutableNode value:@1];
             EZRMutableNode *value2 = [EZRMutableNode value:@2];
@@ -1105,7 +1105,7 @@ describe(@"EZRNode", ^{
             
             expect(value3).to(receive(@[@2, @3, @9, @3]));
         });
-    
+        
         it(@"can add an upstream after merging", ^{
             EZRMutableNode *valueA = [EZRMutableNode value:@1];
             EZRMutableNode *valueB = [EZRMutableNode value:@"1"];
@@ -1126,7 +1126,7 @@ describe(@"EZRNode", ^{
             
             expect(value).to(receive(@[@"1", @NO, @2, @"2", @YES]));
         });
-    
+        
         it(@"can remove an upstream after merging", ^{
             EZRNode *valueA = [EZRNode value:@1];
             EZRMutableNode *valueB = EZRMutableNode.new;
@@ -1146,7 +1146,7 @@ describe(@"EZRNode", ^{
             valueC.value = @YES;
             expect(value).to(receive(@[@NO, @YES]));
         });
-    
+        
         it(@"can be released correctly", ^{
             void (^check)(CheckReleaseTool *checkTool) = ^(CheckReleaseTool *checkTool) {
                 EZRNode *value1 = [EZRNode value:@1];
@@ -1184,7 +1184,7 @@ describe(@"EZRNode", ^{
             expect(zippedValue1.value).to(equal(EZTuple(@2, @"c", @"C")));
             expect(zippedValue1).to(receive(@[EZTuple(@0, @"a", @"A"),EZTuple(@1, @"b", @"B"),EZTuple(@2, @"c", @"C")]));
         });
-    
+        
         it(@"can zip using instance method", ^{
             EZRMutableNode<NSNumber *> *value1 = [EZRMutableNode value:@0];
             EZRMutableNode<NSString *> *value2 = [EZRMutableNode value:@"a"];
@@ -1206,7 +1206,7 @@ describe(@"EZRNode", ^{
             
             expect(zippedValue1).to(receive(@[EZTuple(@0, @"a"),EZTuple(@1, @"b"),EZTuple(@2, @"c")]));
         });
-    
+        
         it(@"keeps empty until every upstream has a non-empty value using zip", ^{
             EZRMutableNode<NSNumber *> *value1 = [EZRMutableNode new];
             EZRMutableNode<NSString *> *value2 = [EZRMutableNode new];
@@ -1220,7 +1220,7 @@ describe(@"EZRNode", ^{
             expect(zippedValue.value).to(equal(EZTuple(@100, @"bbb", @"A")));
             expect(zippedValue).to(receive(@[EZTuple(@100, @"bbb", @"A")]));
         });
-    
+        
         it(@"support nil value", ^{
             EZRNode<NSNumber *> *value1 = [EZRNode value:nil];
             EZRNode<NSString *> *value2 = [EZRNode value:@"a"];
@@ -1232,7 +1232,7 @@ describe(@"EZRNode", ^{
             [zippedValue startListenForTestWithObj:listener];
             expect(zippedValue).to(receive(@[EZTuple(nil, @"a", @"A")]));
         });
-    
+        
         it(@"can add upstreamNodes after zipping", ^{
             EZRMutableNode<NSNumber *> *value1 = [EZRMutableNode value:nil];
             EZRMutableNode<NSString *> *value2 = [EZRMutableNode value:@"a"];
@@ -1255,7 +1255,7 @@ describe(@"EZRNode", ^{
             
             expect(zippedValue).to(receive(@[EZTuple(nil, @"a"), @"AAA",EZTuple(@123, @"aaa")]));
         });
-    
+        
         it(@"should not receive new value after removing zipping upstreamNodes", ^{
             EZRMutableNode<NSNumber *> *value1 = [EZRMutableNode value:@10];
             EZRMutableNode<NSString *> *value2 = [EZRMutableNode value:@"a"];
@@ -1296,7 +1296,7 @@ describe(@"EZRNode", ^{
             expect(value3.value).to(equal(@"500: CCCCC"));
             expect(value3).to(receive(@[@"100: A", @"200: BBB", @"500: CCCCC"]));
         });
-    
+        
         it(@"can be released correctly", ^{
             void (^check)(CheckReleaseTool *checkTool) = ^(CheckReleaseTool *checkTool) {
                 EZRNode *value1 = [EZRNode value:@1];
@@ -1312,7 +1312,7 @@ describe(@"EZRNode", ^{
     });
     
     context(@"- throttle operation,", ^{
-        it(@"only receives value which throttle long enough", ^{
+        it(@"only receive one value in a throttle time", ^{
             dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_SERIAL);
             EZRMutableNode<NSString *> *value = [EZRMutableNode new];
             EZRNode<NSString *> *throttledValue = [value throttleOnMainQueue:0.1];
@@ -1326,16 +1326,16 @@ describe(@"EZRNode", ^{
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.15 * NSEC_PER_SEC), q, ^{
                     value.value = @"re";
                 });
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.80 * NSEC_PER_SEC), q, ^{
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.19 * NSEC_PER_SEC), q, ^{
                     value.value = @"res";
                 });
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.84 * NSEC_PER_SEC), q, ^{
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.80 * NSEC_PER_SEC), q, ^{
                     value.value = @"resu";
                 });
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.20 * NSEC_PER_SEC), q, ^{
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.91 * NSEC_PER_SEC), q, ^{
                     value.value = @"resul";
                 });
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.22 * NSEC_PER_SEC), q, ^{
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.97 * NSEC_PER_SEC), q, ^{
                     value.value = @"result";
                 });
                 
@@ -1344,9 +1344,12 @@ describe(@"EZRNode", ^{
                 });
             });
             
-            expect(throttledValue).to(receive(@[@"re", @"resu", @"result"]));
+            // throttle time [0.12 - 0.22] r re res
+            // throttle time [0.80 - 0.90] resu
+            // throttle time [0.91 - 0.97] resul result
+            expect(throttledValue).to(receive(@[@"res", @"resu", @"result"]));
         });
-    
+        
         it(@"throttle should ignores empty values", ^{
             EZRMutableNode<NSString *> *value = [EZRMutableNode new];
             EZRNode<NSString *> *throttledValue = [value throttleOnMainQueue:0.1];
@@ -1373,7 +1376,7 @@ describe(@"EZRNode", ^{
             
             expect(throttledValue).to(receive(@[@"res", @"resu"]));
         });
-    
+        
         it(@"should invoke the listeners in the main queue when it was created in the main queue", ^{
             dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_CONCURRENT);
             __block EZRNode *throttledValue = nil;
@@ -1497,6 +1500,201 @@ describe(@"EZRNode", ^{
                     [checkTool checkObj:value];
                     [checkTool checkObj:throttledValue];
                     [checkTool checkObj:throttledValue2];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.6 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                        done();
+                    });
+                });
+            };
+            
+            expectCheckTool(check).to(beReleasedCorrectly());
+        });
+    });
+    
+    context(@"- debounce operation,", ^{
+        it(@"only receives value which debounce long enough", ^{
+            dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_SERIAL);
+            EZRMutableNode<NSString *> *value = [EZRMutableNode new];
+            EZRNode<NSString *> *debouncedValue = [value debounceOnMainQueue:0.1];
+            NSObject *listener = [NSObject new];
+            [debouncedValue startListenForTestWithObj:listener];
+            
+            waitUntilTimeout(2, ^(void (^done)(void)) {
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), q, ^{
+                    value.value = @"r";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.15 * NSEC_PER_SEC), q, ^{
+                    value.value = @"re";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.80 * NSEC_PER_SEC), q, ^{
+                    value.value = @"res";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.84 * NSEC_PER_SEC), q, ^{
+                    value.value = @"resu";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.20 * NSEC_PER_SEC), q, ^{
+                    value.value = @"resul";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.22 * NSEC_PER_SEC), q, ^{
+                    value.value = @"result";
+                });
+                
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.5 * NSEC_PER_SEC), q, ^{
+                    done();
+                });
+            });
+            expect(debouncedValue).to(receive(@[@"re", @"resu", @"result"]));
+        });
+        
+        it(@"debounce should ignores empty values", ^{
+            EZRMutableNode<NSString *> *value = [EZRMutableNode new];
+            EZRNode<NSString *> *debouncedValue = [value debounceOnMainQueue:0.1];
+            NSObject *listener = [NSObject new];
+            [debouncedValue startListenForTestWithObj:listener];
+            
+            waitUntil(^(void (^done)(void)) {
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    value.value = @"r";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.13 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    value.value = @"re";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.14 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    value.value = @"res";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.26 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    value.value = @"resu";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.39 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    done();
+                });
+            });
+            
+            expect(debouncedValue).to(receive(@[@"res", @"resu"]));
+        });
+        
+        it(@"should invoke the listeners in the main queue when it was created in the main queue", ^{
+            dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_CONCURRENT);
+            __block EZRNode *debouncedValue = nil;
+            NSObject *listener = [NSObject new];
+            
+            waitUntil(^(void (^done)(void)) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    EZRMutableNode *value = [EZRMutableNode value:@100];
+                    debouncedValue = [value debounceOnMainQueue:0.1];
+                    [debouncedValue startListenForTestWithObj:listener];
+                    [[debouncedValue listenedBy:listener] withBlock:^(id  _Nullable next) {
+                        expect([NSThread isMainThread]).to(beTruthy());
+                    }];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), q, ^{
+                        value.value = @200;
+                    });
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC), q, ^{
+                        value.value = @300;
+                        done();
+                    });
+                });
+            });
+            
+            expect(debouncedValue).to(receive(@[@100, @200]));
+        });
+        
+        it(@"should invoke the listeners in a background queue when it created in a background queue", ^{
+            dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_CONCURRENT);
+            __block EZRNode *debouncedValue = nil;
+            NSObject *listener = [NSObject new];
+            waitUntil(^(void (^done)(void)) {
+                dispatch_async(q, ^{
+                    EZRMutableNode *value = [EZRMutableNode value:@100];
+                    debouncedValue = [value debounce:0.1 queue:q];
+                    [debouncedValue startListenForTestWithObj:listener];
+                    [[debouncedValue listenedBy:listener] withBlock:^(id  _Nullable next) {
+                        expect([NSThread isMainThread]).to(beFalsy());
+                    }];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                        value.value = @200;
+                    });
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                        value.value = @300;
+                        done();
+                    });
+                });
+            });
+            
+            expect(debouncedValue).to(receive(@[@100, @200]));
+        });
+        
+        it(@"can invoke listen on the specified queue", ^{
+            dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_CONCURRENT);
+            __block EZRNode *debouncedValue = nil;
+            NSObject *listener = [NSObject new];
+            waitUntil(^(void (^done)(void)) {
+                dispatch_async(q, ^{
+                    EZRMutableNode *value = [EZRMutableNode value:@100];
+                    debouncedValue = [value debounce:0.1 queue:dispatch_get_main_queue()];
+                    [debouncedValue startListenForTestWithObj:listener];
+                    [[debouncedValue listenedBy:listener] withBlock:^(id  _Nullable next) {
+                        expect([NSThread isMainThread]).to(beTruthy());
+                    }];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), q, ^{
+                        value.value = @200;
+                    });
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC), q, ^{
+                        value.value = @300;
+                        done();
+                    });
+                });
+            });
+            
+            expect(debouncedValue).to(receive(@[@100, @200]));
+            
+            __block EZRNode *debouncedValue2 = nil;
+            listener = [NSObject new];
+            waitUntil(^(void (^done)(void)) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    EZRMutableNode *value = [EZRMutableNode value:@1000];
+                    debouncedValue2 = [value debounce:0.1 queue:q];
+                    [debouncedValue2 startListenForTestWithObj:listener];
+                    [[debouncedValue2 listenedBy:listener] withBlock:^(id  _Nullable next) {
+                        expect([NSThread isMainThread]).to(beFalsy());
+                    }];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                        value.value = @2000;
+                    });
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                        value.value = @3000;
+                        done();
+                    });
+                });
+            });
+            
+            expect(debouncedValue2).to(receive(@[@1000, @2000]));
+        });
+        
+        it(@"should raise an asset when debouncing with a number less than zero", ^(){
+            EZRNode *value = [EZRNode value:@1000];
+            
+            assertExpect(^{
+                [value debounceOnMainQueue:-1];
+            }).to(hasParameterAssert());
+        });
+        
+        it(@"can be released correctly", ^{
+            void (^check)(CheckReleaseTool *checkTool) = ^(CheckReleaseTool *checkTool) {
+                waitUntil(^(void (^done)(void)) {
+                    NSObject *listener = [NSObject new];
+                    EZRNode<NSNumber *> *value = [EZRNode value:@10];
+                    
+                    EZRNode<NSNumber *> *debouncedValue = [value debounceOnMainQueue:0.5];
+                    EZRNode<NSNumber *> *debouncedValue2 = [value debounce:0.2 queue:dispatch_get_main_queue()];
+                    [[debouncedValue listenedBy:listener] withBlock:^(NSNumber * _Nullable next) {
+                        
+                    }];
+                    [[debouncedValue2 listenedBy:listener] withBlock:^(NSNumber * _Nullable next) {
+                        
+                    }];
+                    [checkTool checkObj:value];
+                    [checkTool checkObj:debouncedValue];
+                    [checkTool checkObj:debouncedValue2];
                     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.6 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
                         done();
                     });
@@ -1660,7 +1858,7 @@ describe(@"EZRNode", ^{
             [checkTool checkObj:anotherlilei];
         }).to(beReleasedCorrectly());
     });
-
+    
     it(@"should raise an exception if a node was generated incorrectly", ^{
         EZRMutableNode *node = [EZRMutableNode new];
         EZRNode *casedNode __attribute__((unused))= [node case:@"xx"];
@@ -1746,7 +1944,7 @@ describe(@"EZRNode", ^{
             [node delayOnMainQueue:-1];
         }).to(hasParameterAssert());
     });
-
+    
     it(@"can be released correctly when using delay operation", ^{
         void (^check)(CheckReleaseTool *checkTool) = ^(CheckReleaseTool *checkTool) {
             waitUntil(^(void (^done)(void)) {
@@ -1772,7 +1970,6 @@ describe(@"EZRNode", ^{
         
         expectCheckTool(check).to(beReleasedCorrectly());
     });
-
 });
 
 QuickSpecEnd

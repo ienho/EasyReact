@@ -160,9 +160,9 @@ FOUNDATION_EXTERN NSString * const EZRExceptionReason_CasedNodeMustGenerateBySwi
 - (EZRNode *)flatten;
 
 /**
- Changes value if and only if the value does not change again in `interval` seconds.
+ Changes value at most once in `interval` seconds.
  
- @discusstion If a value does not last for `interval` seconds, its listeners / downstreamNodes will not receive this value.
+ @discusstion If change value many times in `interval` seconds, its listeners / downstreamNodes will just receive the last value.
  An throttled empty value will not notify its listeners or downdstreams no matter how long it remains empty.
  The listener or downstream blocks will always be invoked in the main queue.
  If you want to dispatch those blocks to a specified queue, use `-throttle:queue:` method.
@@ -175,9 +175,9 @@ FOUNDATION_EXTERN NSString * const EZRExceptionReason_CasedNodeMustGenerateBySwi
 - (EZRNode<T> *)throttleOnMainQueue:(NSTimeInterval)timeInterval;
 
 /**
- Changes value if and only if the value does not change again in `interval` seconds.
+ Changes value at most once in `interval` seconds.
  
- @discusstion If a value does not last for `interval` seconds, its listeners / downstreamNodes will not receive this value.
+ @discusstion If change value many times in `interval` seconds, its listeners / downstreamNodes will just receive the last value.
  An throttled empty value will not notify its listeners or downdstreams no matter how long it remains empty.
  
  @note It is NOT a real time mechanism, just like an NSTimer.
@@ -187,6 +187,35 @@ FOUNDATION_EXTERN NSString * const EZRExceptionReason_CasedNodeMustGenerateBySwi
  @return                A new EZRNode which change its value if and only if the value lasts for a given interval.
  */
 - (EZRNode<T> *)throttle:(NSTimeInterval)timeInterval queue:(dispatch_queue_t)queue;
+
+/**
+ Changes value if and only if the value does not change again in future `interval` seconds.
+ 
+ @discusstion If a value next change in future `interval` seconds, its listeners / downstreamNodes will not receive this value.
+ An debounced empty value will not notify its listeners or downdstreams no matter how long it remains empty.
+ The listener or downstream blocks will always be invoked in the main queue.
+ If you want to dispatch those blocks to a specified queue, use `-debounce:queue:` method.
+ 
+ @note It is NOT a real time mechanism, just like an NSTimer.
+ 
+ @param timeInterval    The time interval in seconds, MUST be greater than 0.
+ @return                A new EZRNode which change its value if the value does not change again in future `interval` seconds.
+ */
+- (EZRNode<T> *)debounceOnMainQueue:(NSTimeInterval)timeInterval;
+
+/**
+ Changes value if and only if the value does not change again in future `interval` seconds.
+ 
+ @discusstion If a value next change in future `interval` seconds, its listeners / downstreamNodes will not receive this value.
+ An debounced empty value will not notify its listeners or downdstreams no matter how long it remains empty.
+ 
+ @note It is NOT a real time mechanism, just like an NSTimer.
+ 
+ @param timeInterval    The time interval in seconds, MUST be greater than 0.
+ @param queue           The queue which listener block will be invoked in.
+ @return                A new EZRNode which change its value if the value does not change again in future `interval` seconds.
+ */
+- (EZRNode<T> *)debounce:(NSTimeInterval)timeInterval queue:(dispatch_queue_t)queue;
 
 /**
  Delays the passing value from the receiver in specific queue. Delay operation will return a new node as the receiver's downstream.

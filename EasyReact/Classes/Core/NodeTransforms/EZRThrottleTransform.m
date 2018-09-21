@@ -1,18 +1,9 @@
-/**
- * Beijing Sankuai Online Technology Co.,Ltd (Meituan)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+//
+//  EZRThrottleTransform.m
+//  EasyReact
+//
+//  Created by huangyanhua on 2018/8/29.
+//
 
 #import "EZRThrottleTransform.h"
 #import "EZRNode+ProjectPrivate.h"
@@ -20,10 +11,13 @@
 #import "EZRMetaMacrosPrivate.h"
 
 @implementation EZRThrottleTransform {
-    @private
+@private
     NSTimeInterval _throttleInterval;
     dispatch_source_t _throttleSource;
     dispatch_queue_t _queue;
+    id _lastValue;
+    id _lastContext;
+    EZRSenderList *_lastSenderList;
     EZR_LOCK_DEF(_sourceLock);
 }
 
@@ -42,28 +36,34 @@
 - (void)next:(id)value from:(EZRSenderList *)senderList context:(nullable id)context {
     EZR_SCOPELOCK(_sourceLock);
     
-    if (_throttleSource) {
-        dispatch_source_cancel(_throttleSource);
-        _throttleSource = nil;
-    }
+    _lastValue = value;
+    _lastContext = context;
+    _lastSenderList = senderList;
     
-    _throttleSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _queue);
-    dispatch_source_set_timer(_throttleSource, dispatch_time(DISPATCH_TIME_NOW, _throttleInterval * NSEC_PER_SEC), DISPATCH_TIME_FOREVER, 0.005);
-    
-    @ezr_weakify(self)
-    dispatch_source_set_event_handler(_throttleSource, ^{
-        @ezr_strongify(self)
-        if (!self) {
-            return ;
-        }
-        EZR_SCOPELOCK(self->_sourceLock);
-        [self _superNext:value from:senderList context:context];
+    if (!_throttleSource) {
+        _throttleSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _queue);
+        dispatch_source_set_timer(_throttleSource, dispatch_time(DISPATCH_TIME_NOW, _throttleInterval * NSEC_PER_SEC), _throttleInterval * NSEC_PER_SEC, 0.005);
+        @ezr_weakify(self)
+        dispatch_source_set_event_handler(_throttleSource, ^{
+            @ezr_strongify(self)
+            if (!self) {
+                return ;
+            }
+            EZR_SCOPELOCK(self->_sourceLock);
+            if (self->_lastValue) {
+                // send the latest value
+                [self _superNext:self->_lastValue from:self->_lastSenderList context:self->_lastContext];
+                self->_lastValue = nil;
+                self->_lastSenderList = nil;
+                self->_lastContext = nil;
+            } else {
+                dispatch_source_cancel(self->_throttleSource);
+                self->_throttleSource = nil;
+            }
+        });
         
-        dispatch_source_cancel(self->_throttleSource);
-        self->_throttleSource = nil;
-    });
-    
-    dispatch_resume(_throttleSource);
+        dispatch_resume(_throttleSource);
+    }
 }
 
 - (void)_superNext:(id)value from:(EZRSenderList *)senderList context:(nullable id)context {

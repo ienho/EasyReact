@@ -21,6 +21,7 @@
 #import "EZRDistinctTransform.h"
 #import "EZRFlattenTransform.h"
 #import "EZRThrottleTransform.h"
+#import "EZRDebounceTransform.h"
 #import "EZRBlockCancelable.h"
 #import "EZRZipTransform.h"
 #import "EZRZipTransformGroup.h"
@@ -146,6 +147,19 @@ NSString * const EZRExceptionReason_CasedNodeMustGenerateBySwitchOrSwitchMapOper
     NSParameterAssert(queue);
     EZRNode *returnedNode = EZRNode.new;
     EZRThrottleTransform *transform = [[EZRThrottleTransform alloc] initWithThrottle:timeInterval on:queue];
+    [returnedNode linkTo:self transform:transform];
+    return returnedNode;
+}
+
+- (EZRNode *)debounceOnMainQueue:(NSTimeInterval)timeInterval {
+    return [self debounce:timeInterval queue:dispatch_get_main_queue()];
+}
+
+- (EZRNode *)debounce:(NSTimeInterval)timeInterval queue:(dispatch_queue_t)queue {
+    NSParameterAssert(timeInterval > 0);
+    NSParameterAssert(queue);
+    EZRNode *returnedNode = EZRNode.new;
+    EZRDebounceTransform *transform = [[EZRDebounceTransform alloc] initWithDebounce:timeInterval on:queue];
     [returnedNode linkTo:self transform:transform];
     return returnedNode;
 }
