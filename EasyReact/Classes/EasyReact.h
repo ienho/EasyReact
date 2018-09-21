@@ -57,6 +57,7 @@ FOUNDATION_EXPORT const unsigned char EasyReactVersionString[];
 #import <EasyReact/EZRFlattenTransform.h>
 #import <EasyReact/EZRMapTransform.h>
 #import <EasyReact/EZRThrottleTransform.h>
+#import <EasyReact/EZRDebounceTransform.h>
 #import <EasyReact/EZRZipTransform.h>
 #import <EasyReact/EZRZipTransformGroup.h>
 #import <EasyReact/EZRSwitchMapTransform.h>
