@@ -170,4 +170,6 @@ EasyReact 使用 [Apache Public License 2.0 许可证](./LICENSE)。
 
 微信交流群：
 
-![微信交流群](images/wechat.jpeg)
+加下方小助手微信，自动通过后输入 “EasyReact” 即可加入微信交流群。
+
+![加入微信交流群](images/wechat.jpeg)
