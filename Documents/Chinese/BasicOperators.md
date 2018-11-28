@@ -6,44 +6,47 @@
 
 <!-- TOC -->
 
-- [创建节点](#创建节点)
-  - [创建不变节点](#创建不变节点)
-  - [创建可变节点](#创建可变节点)
-- [修改节点的值](#修改节点的值)
-- [获取节点的值](#获取节点的值)
-  - [获取即时值](#获取即时值)
-  - [监听节点值](#监听节点值)
-  - [多线程下的监听](#多线程下的监听)
-- [连接两个节点](#连接两个节点)
-  - [如何连接两个节点](#如何连接两个节点)
-  - [断开两个节点](#断开两个节点)
-  - [隐式的连接两个节点](#隐式的连接两个节点)
-- [基本变换](#基本变换)
-  - [map](#map)
-  - [filter](#filter)
-  - [distinctUntilChanged](#distinctuntilchanged)
-  - [throttle](#throttle)
-  - [skip](#skip)
-  - [take](#take)
-  - [deliverOn](#deliveron)
-  - [delay](#delay)
-  - [scan](#scan)
-- [组合](#组合)
-  - [combine](#combine)
-  - [merge](#merge)
-  - [zip](#zip)
-- [分支](#分支)
-  - [switch-case-default](#switch-case-default)
-  - [if-then-else](#if-then-else)
-- [同步](#同步)
-  - [syncWith](#syncwith)
-  - [手动同步](#手动同步)
-- [高阶变换](#高阶变换)
-  - [flatten](#flatten)
-  - [flattenMap](#flattenmap)
-- [图遍历](#图遍历)
-  - [简单访问](#简单访问)
-  - [访问器模式](#访问器模式)
+- [基本操作](#基本操作)
+    - [目录](#目录)
+    - [创建节点](#创建节点)
+        - [创建不变节点](#创建不变节点)
+        - [创建可变节点](#创建可变节点)
+    - [修改节点的值](#修改节点的值)
+    - [获取节点的值](#获取节点的值)
+        - [获取即时值](#获取即时值)
+        - [监听节点值](#监听节点值)
+        - [多线程下的监听](#多线程下的监听)
+    - [连接两个节点](#连接两个节点)
+        - [如何连接两个节点](#如何连接两个节点)
+        - [断开两个节点](#断开两个节点)
+        - [隐式的连接两个节点](#隐式的连接两个节点)
+    - [基本变换](#基本变换)
+        - [map](#map)
+        - [filter](#filter)
+        - [distinctUntilChanged](#distinctuntilchanged)
+        - [debounce](#debounce)
+        - [throttle](#throttle)
+        - [skip](#skip)
+        - [take](#take)
+        - [deliverOn](#deliveron)
+        - [delay](#delay)
+        - [scan](#scan)
+    - [组合](#组合)
+        - [combine](#combine)
+        - [merge](#merge)
+        - [zip](#zip)
+    - [分支](#分支)
+        - [switch-case-default](#switch-case-default)
+        - [if-then-else](#if-then-else)
+    - [同步](#同步)
+        - [syncWith](#syncwith)
+        - [手动同步](#手动同步)
+    - [高阶变换](#高阶变换)
+        - [flatten](#flatten)
+        - [flattenMap](#flattenmap)
+    - [图遍历](#图遍历)
+        - [简单访问](#简单访问)
+        - [访问器模式](#访问器模式)
 
 <!-- /TOC -->
 
@@ -561,15 +564,15 @@ nodeA.value = @2;
  */
 ```
 
-### throttle
+### debounce
 
-节流描述了这样的一种操作，对于上游的值来说，在一定的时间内如果有新的值则不会传递旧的值，如果等待到指定的时间没有新的值再将之前的值传递到下游。由于传递是异步的，所以阀门操作一般需要指定一个 GCD 的队列来告诉 EasyReact 在哪里进行传递。
+防抖描述了这样的一种操作，对于上游的值来说，如果新值到达距离上一次到达间隔小于`interval`，则将丢弃上一次值改变，并重置计时器，如此继续，直到新值改变距离上一次改变间隔大于或等于 `interval`才将最后到达的值传递到下游。由于传递是异步的，所以防抖操作一般需要指定一个 GCD 的队列来告诉 EasyReact 在哪里进行传递。
 
-一般阀门的操作用于搜索输入这样的需求上用来避免多次请求网络：
+一般防抖操作用于搜索输入即时搜索内容这样的需求上，用来避免短时间内多次请求网络：
 
 ```objective-c
 EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
-EZRNode<NSString *> *searchNode = [inputNode throttle:1 queue:dispatch_get_main_queue()];             // <- 单位是秒
+EZRNode<NSString *> *searchNode = [inputNode debounce:1 queue:dispatch_get_main_queue()];             // <- 单位是秒
 
 [[searchNode listenedBy:self] withBlock:^(NSString *next) {
   NSLog(@"想要搜索的是 %@", next);
@@ -596,7 +599,56 @@ dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.2 * NSEC_PER_SEC), dispatch_ge
  */
 ```
 
-大家通常都想要在主队列完成监听，所以`throttleOnMainQueue:`方法快速的提供了阀门到主队列的能力：
+大家通常都想要在主队列完成监听，所以`debounceOnMainQueue:`方法快速的提供了阀门到主队列的能力：
+
+```objective-c
+EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
+EZRNode<NSString *> *searchNode = [inputNode debounceOnMainQueue:1];
+```
+
+等价于
+
+```objective-c
+EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
+EZRNode<NSString *> *searchNode = [inputNode debounce:1 queue:dispatch_get_main_queue()];
+```
+
+### throttle
+
+节流描述了这样的一种操作，对于上游的值来说，如果在同一个`interval`时间间隔内到达多个值，那么只会将`interval`时间间隔内的最后一个值传递给下游，如此继续，达到每个时间间隔内最多传递一个值的效果。由于传递是异步的，所以节流操作一般需要指定一个 GCD 的队列来告诉 EasyReact 在哪里进行传递。
+
+一般节流操作可用于限制一段时间某些操作产生的次数，从而提升程序性能。比如下载回调一秒钟回调100次，就可以用节流来让UI一秒钟只刷新2次：或者IM聊天app，一秒钟收到了好多条下行消息，网络层处理后可以通过节流器后来更新UI避免频繁刷新UI；
+
+```objective-c
+EZRMutableNode<NSString *> *messageReceiveNode = [EZRMutableNode new];
+EZRNode<NSString *> *viewUpdateNode = [messageReceiveNode throttle:0.5 queue:dispatch_get_main_queue()];             // <- 单位是秒
+
+[[viewUpdateNode listenedBy:self] withBlock:^(NSString *next) {
+    NSLog(@"开始刷新界面 %@", next);
+}];
+
+inputNode.value = @"h";
+inputNode.value = @"he";
+inputNode.value = @"hel";
+inputNode.value = @"hell";
+inputNode.value = @"hello";
+
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+  inputNode.value = @"hello ";
+  inputNode.value = @"hello w";
+  inputNode.value = @"hello wo";
+  inputNode.value = @"hello wor";
+  inputNode.value = @"hello worl";
+  inputNode.value = @"hello world";
+});
+
+/* 打印如下：
+想要搜索的是 hello
+想要搜索的是 hello world
+ */
+```
+
+大家通常都想要在主队列完成监听，所以`throttleOnMainQueue:`方法快速的提供了节流器到主队列的能力：
 
 ```objective-c
 EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
@@ -607,7 +659,7 @@ EZRNode<NSString *> *searchNode = [inputNode throttleOnMainQueue:1];
 
 ```objective-c
 EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
-EZRNode<NSString *> *searchNode = [inputNode throttle:1 queue:dispatch_get_main_queue()];
+EZRNode<NSString *> *searchNode = [inputNode debounce:1 queue:dispatch_get_main_queue()];
 ```
 
 ### skip

@@ -1542,6 +1542,9 @@ describe(@"EZRNode", ^{
                     done();
                 });
             });
+            // 0.12 - 0.15 - 0.25 r re
+            // 0.80 - 0.84 - 0.94 res resu
+            // 1.20 - 1.22 - 1.32 resul result
             expect(debouncedValue).to(receive(@[@"re", @"resu", @"result"]));
         });
         

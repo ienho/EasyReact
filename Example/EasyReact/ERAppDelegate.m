@@ -16,11 +16,27 @@
 
 #import "ERAppDelegate.h"
 
+#import <EasyReact/EasyReact.h>
+
 @implementation ERAppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     // Override point for customization after application launch.
+    
+    EZRMutableNode *node1 = EZRMutableNode.new;
+    EZRNode *node2 = [node1 throttle:1 queue:dispatch_get_main_queue()];
+    [[self listen:node2] withBlock:^(id  _Nullable next) {
+        NSLog(@"node2 value = %@", next);
+    }];
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        for (int i = 0; i < 50; i++) {
+            [NSThread sleepForTimeInterval:0.3];
+            NSLog(@"node1 value = %@", @(i));
+            node1.value = @(i);
+        }
+    });
+    
     return YES;
 }
 
