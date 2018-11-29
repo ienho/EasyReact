@@ -23,6 +23,7 @@
   - [filter](#filter)
   - [distinctUntilChanged](#distinctuntilchanged)
   - [throttle](#throttle)
+  - [debounce](#debounce)
   - [skip](#skip)
   - [take](#take)
   - [deliverOn](#deliveron)
@@ -564,13 +565,79 @@ nodeA.value = @2;
 
 ### throttle
 
-节流描述了这样的一种操作，对于上游的值来说，在一定的时间内如果有新的值则不会传递旧的值，如果等待到指定的时间没有新的值再将之前的值传递到下游。由于传递是异步的，所以阀门操作一般需要指定一个 GCD 的队列来告诉 EasyReact 在哪里进行传递。
+节流描述了这样的一种操作，对于上游的值来说，如果在同一个`interval`时间间隔内到达多个值，那么只会将`interval`时间间隔内的最后一个值传递给下游，如此继续，达到每个时间间隔内最多传递一个值的效果。由于传递是异步的，所以节流操作一般需要指定一个 GCD 的队列来告诉 EasyReact 在哪里进行传递。
 
-一般阀门的操作用于搜索输入这样的需求上用来避免多次请求网络：
+一般节流操作可用于限制一段时间某些操作产生的次数，从而提升程序性能。比如下载回调一秒钟回调10次，就可以用节流来让UI一秒钟只刷新2次:
 
 ```objective-c
 EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
-EZRNode<NSString *> *searchNode = [inputNode throttle:1 queue:dispatch_get_main_queue()];             // <- 单位是秒
+EZRNode<NSString *> *viewUpdateNode = [inputNode throttle:0.5 queue:dispatch_get_main_queue()];             // <- 单位是秒
+[[viewUpdateNode listenedBy:self] withBlock:^(NSString *next) {
+    NSLog(@"下载进度 %@", next);
+}];
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.0 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.1";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.2 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.2";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.3 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.3";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.4 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.4";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.5";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.6 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.6";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.7 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.7";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.8 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.8";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.9 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.9";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.0 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"1.0";
+});
+
+/* 打印如下：
+下载进度 0.5
+下载进度 1.0
+ */
+```
+
+大家通常都想要在主队列完成监听，所以`throttleOnMainQueue:`方法快速的提供了节流器到主队列的能力：
+
+```objective-c
+EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
+EZRNode<NSString *> *searchNode = [inputNode throttleOnMainQueue:1];
+```
+
+等价于
+
+```objective-c
+EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
+EZRNode<NSString *> *searchNode = [inputNode debounce:1 queue:dispatch_get_main_queue()];
+```
+
+### debounce
+
+防抖描述了这样的一种操作，对于上游的值来说，如果新值到达距离上一次到达间隔小于`interval`，则将丢弃上一次值改变，并重置计时器，如此继续，直到新值改变距离上一次改变间隔大于或等于 `interval`才将最后到达的值传递到下游。由于传递是异步的，所以防抖操作一般需要指定一个 GCD 的队列来告诉 EasyReact 在哪里进行传递。
+
+一般防抖操作用于搜索输入即时搜索内容这样的需求上，用来避免短时间内多次请求网络：
+
+```objective-c
+EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
+EZRNode<NSString *> *searchNode = [inputNode debounce:1 queue:dispatch_get_main_queue()];             // <- 单位是秒
 
 [[searchNode listenedBy:self] withBlock:^(NSString *next) {
   NSLog(@"想要搜索的是 %@", next);
@@ -597,18 +664,18 @@ dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.2 * NSEC_PER_SEC), dispatch_ge
  */
 ```
 
-大家通常都想要在主队列完成监听，所以`throttleOnMainQueue:`方法快速的提供了阀门到主队列的能力：
+大家通常都想要在主队列完成监听，所以`debounceOnMainQueue:`方法快速的提供了阀门到主队列的能力：
 
 ```objective-c
 EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
-EZRNode<NSString *> *searchNode = [inputNode throttleOnMainQueue:1];
+EZRNode<NSString *> *searchNode = [inputNode debounceOnMainQueue:1];
 ```
 
 等价于
 
 ```objective-c
 EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
-EZRNode<NSString *> *searchNode = [inputNode throttle:1 queue:dispatch_get_main_queue()];
+EZRNode<NSString *> *searchNode = [inputNode debounce:1 queue:dispatch_get_main_queue()];
 ```
 
 ### skip
@@ -1171,3 +1238,4 @@ circo -Tpdf test.dot -o test.pdf && open test.pdf
 ### 访问器模式
 
 想要更多的访问一个节点而避免递归这样的复杂度，可以使用访问器模式，实现 EZRNodeVisitor 协议写出自己的逻辑即可。详情和例子可以参考 [EasyReact/Core/EZRNode+Graph.m.](https://github.com/meituan/EasyReact/blob/master/EasyReact/Classes/Core/EZRNode%2BGraph.m) 的实现。
+

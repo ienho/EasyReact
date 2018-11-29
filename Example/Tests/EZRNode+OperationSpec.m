@@ -1306,7 +1306,7 @@ describe(@"EZRNode", ^{
     });
     
     context(@"- throttle operation,", ^{
-        it(@"only receives value which throttle long enough", ^{
+        it(@"only receive the last value in each throttle interval time", ^{
             dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_SERIAL);
             EZRMutableNode<NSString *> *value = [EZRMutableNode new];
             EZRNode<NSString *> *throttledValue = [value throttleOnMainQueue:0.1];
@@ -1320,10 +1320,10 @@ describe(@"EZRNode", ^{
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.15 * NSEC_PER_SEC), q, ^{
                     value.value = @"re";
                 });
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.80 * NSEC_PER_SEC), q, ^{
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.19 * NSEC_PER_SEC), q, ^{
                     value.value = @"res";
                 });
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.84 * NSEC_PER_SEC), q, ^{
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC), q, ^{
                     value.value = @"resu";
                 });
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.20 * NSEC_PER_SEC), q, ^{
@@ -1338,7 +1338,10 @@ describe(@"EZRNode", ^{
                 });
             });
             
-            expect(throttledValue).to(receive(@[@"re", @"resu", @"result"]));
+            // throttle interval time [0.12 - 0.22] r re 【res】
+            // throttle interval time [0.25 - 0.35] 【resu】
+            // throttle interval time [1.20 - 1.32] resul 【result】
+            expect(throttledValue).to(receive(@[@"res", @"resu", @"result"]));
         });
     
         it(@"throttle should ignores empty values", ^{
@@ -1491,6 +1494,204 @@ describe(@"EZRNode", ^{
                     [checkTool checkObj:value];
                     [checkTool checkObj:throttledValue];
                     [checkTool checkObj:throttledValue2];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.6 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                        done();
+                    });
+                });
+            };
+            
+            expectCheckTool(check).to(beReleasedCorrectly());
+        });
+    });
+    
+    context(@"- debounce operation,", ^{
+        it(@"only receives value which debounce long enough", ^{
+            dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_SERIAL);
+            EZRMutableNode<NSString *> *value = [EZRMutableNode new];
+            EZRNode<NSString *> *debouncedValue = [value debounceOnMainQueue:0.1];
+            NSObject *listener = [NSObject new];
+            [debouncedValue startListenForTestWithObj:listener];
+            
+            waitUntilTimeout(2, ^(void (^done)(void)) {
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), q, ^{
+                    value.value = @"r";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.15 * NSEC_PER_SEC), q, ^{
+                    value.value = @"re";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.80 * NSEC_PER_SEC), q, ^{
+                    value.value = @"res";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.84 * NSEC_PER_SEC), q, ^{
+                    value.value = @"resu";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.20 * NSEC_PER_SEC), q, ^{
+                    value.value = @"resul";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.22 * NSEC_PER_SEC), q, ^{
+                    value.value = @"result";
+                });
+                
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.5 * NSEC_PER_SEC), q, ^{
+                    done();
+                });
+            });
+            // [0.12 - 0.15 - 0.15 - 0.25] r 【re】
+            // [0.80 - 0.84 - 0.84 - 0.94] res 【resu】
+            // [1.20 - 1.22 - 1.22 - 1.32] resul 【result】
+            expect(debouncedValue).to(receive(@[@"re", @"resu", @"result"]));
+        });
+        
+        it(@"debounce should ignores empty values", ^{
+            EZRMutableNode<NSString *> *value = [EZRMutableNode new];
+            EZRNode<NSString *> *debouncedValue = [value debounceOnMainQueue:0.1];
+            NSObject *listener = [NSObject new];
+            [debouncedValue startListenForTestWithObj:listener];
+            
+            waitUntil(^(void (^done)(void)) {
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    value.value = @"r";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.13 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    value.value = @"re";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.14 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    value.value = @"res";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.26 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    value.value = @"resu";
+                });
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.39 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    done();
+                });
+            });
+            
+            expect(debouncedValue).to(receive(@[@"res", @"resu"]));
+        });
+        
+        it(@"should invoke the listeners in the main queue when it was created in the main queue", ^{
+            dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_CONCURRENT);
+            __block EZRNode *debouncedValue = nil;
+            NSObject *listener = [NSObject new];
+            
+            waitUntil(^(void (^done)(void)) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    EZRMutableNode *value = [EZRMutableNode value:@100];
+                    debouncedValue = [value debounceOnMainQueue:0.1];
+                    [debouncedValue startListenForTestWithObj:listener];
+                    [[debouncedValue listenedBy:listener] withBlock:^(id  _Nullable next) {
+                        expect([NSThread isMainThread]).to(beTruthy());
+                    }];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), q, ^{
+                        value.value = @200;
+                    });
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC), q, ^{
+                        value.value = @300;
+                        done();
+                    });
+                });
+            });
+            
+            expect(debouncedValue).to(receive(@[@100, @200]));
+        });
+        
+        it(@"should invoke the listeners in a background queue when it created in a background queue", ^{
+            dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_CONCURRENT);
+            __block EZRNode *debouncedValue = nil;
+            NSObject *listener = [NSObject new];
+            waitUntil(^(void (^done)(void)) {
+                dispatch_async(q, ^{
+                    EZRMutableNode *value = [EZRMutableNode value:@100];
+                    debouncedValue = [value debounce:0.1 queue:q];
+                    [debouncedValue startListenForTestWithObj:listener];
+                    [[debouncedValue listenedBy:listener] withBlock:^(id  _Nullable next) {
+                        expect([NSThread isMainThread]).to(beFalsy());
+                    }];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                        value.value = @200;
+                    });
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                        value.value = @300;
+                        done();
+                    });
+                });
+            });
+            
+            expect(debouncedValue).to(receive(@[@100, @200]));
+        });
+        
+        it(@"can invoke listen on the specified queue", ^{
+            dispatch_queue_t q = dispatch_queue_create("test.queue", DISPATCH_QUEUE_CONCURRENT);
+            __block EZRNode *debouncedValue = nil;
+            NSObject *listener = [NSObject new];
+            waitUntil(^(void (^done)(void)) {
+                dispatch_async(q, ^{
+                    EZRMutableNode *value = [EZRMutableNode value:@100];
+                    debouncedValue = [value debounce:0.1 queue:dispatch_get_main_queue()];
+                    [debouncedValue startListenForTestWithObj:listener];
+                    [[debouncedValue listenedBy:listener] withBlock:^(id  _Nullable next) {
+                        expect([NSThread isMainThread]).to(beTruthy());
+                    }];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), q, ^{
+                        value.value = @200;
+                    });
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC), q, ^{
+                        value.value = @300;
+                        done();
+                    });
+                });
+            });
+            
+            expect(debouncedValue).to(receive(@[@100, @200]));
+            
+            __block EZRNode *debouncedValue2 = nil;
+            listener = [NSObject new];
+            waitUntil(^(void (^done)(void)) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    EZRMutableNode *value = [EZRMutableNode value:@1000];
+                    debouncedValue2 = [value debounce:0.1 queue:q];
+                    [debouncedValue2 startListenForTestWithObj:listener];
+                    [[debouncedValue2 listenedBy:listener] withBlock:^(id  _Nullable next) {
+                        expect([NSThread isMainThread]).to(beFalsy());
+                    }];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.12 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                        value.value = @2000;
+                    });
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                        value.value = @3000;
+                        done();
+                    });
+                });
+            });
+            
+            expect(debouncedValue2).to(receive(@[@1000, @2000]));
+        });
+        
+        it(@"should raise an asset when debouncing with a number less than zero", ^(){
+            EZRNode *value = [EZRNode value:@1000];
+            
+            assertExpect(^{
+                [value debounceOnMainQueue:-1];
+            }).to(hasParameterAssert());
+        });
+        
+        it(@"can be released correctly", ^{
+            void (^check)(CheckReleaseTool *checkTool) = ^(CheckReleaseTool *checkTool) {
+                waitUntil(^(void (^done)(void)) {
+                    NSObject *listener = [NSObject new];
+                    EZRNode<NSNumber *> *value = [EZRNode value:@10];
+                    
+                    EZRNode<NSNumber *> *debouncedValue = [value debounceOnMainQueue:0.5];
+                    EZRNode<NSNumber *> *debouncedValue2 = [value debounce:0.2 queue:dispatch_get_main_queue()];
+                    [[debouncedValue listenedBy:listener] withBlock:^(NSNumber * _Nullable next) {
+                        
+                    }];
+                    [[debouncedValue2 listenedBy:listener] withBlock:^(NSNumber * _Nullable next) {
+                        
+                    }];
+                    [checkTool checkObj:value];
+                    [checkTool checkObj:debouncedValue];
+                    [checkTool checkObj:debouncedValue2];
                     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.6 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
                         done();
                     });

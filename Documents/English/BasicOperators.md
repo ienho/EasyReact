@@ -23,6 +23,7 @@ This document provides an overview of common operations in EasyReact and provide
   - [filter](#filter)
   - [distinctUntilChanged](#distinctuntilchanged)
   - [throttle](#throttle)
+  - [debounce](#debounce)
   - [skip](#skip)
   - [take](#take)
   - [deliverOn](#deliveron)
@@ -564,13 +565,79 @@ Received 2
 
 ### throttle
 
-Throttle describes such an operation: for the upstream value, if there is a new value in a certain period of time will not pass the old value, if there is no new value waiting for the specified time before passing the previous value Downstream. Because the transfer is asynchronous, throttle operations typically require a GCD queue to tell EasyReact where to pass.
+Throttle describes such an operation: for the upstream value，if there is some values arrived in a `interval` time，just passing the last received value Downstream. Because the transfer is asynchronous, throttle operations typically require a GCD queue to tell EasyReact where to pass.
 
-The general throttle operation is used to search input for such a requirement to avoid multiple requests to the network:
+The general Throttle operation is used to limit times do some action in interval time. such a download task may  callback 10 times per second, report to UI refresh can use throttle 0.5, then the UI refresh just 2 times per second:
 
 ```objective-c
 EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
-EZRNode<NSString *> *searchNode = [inputNode throttle:1 queue:dispatch_get_main_queue()]; // <- Unit is second
+EZRNode<NSString *> *viewUpdateNode = [inputNode throttle:0.5 queue:dispatch_get_main_queue()];             // <- 单位是秒
+[[viewUpdateNode listenedBy:self] withBlock:^(NSString *next) {
+    NSLog(@"下载进度 %@", next);
+}];
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.0 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.1";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.2 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.2";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.3 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.3";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.4 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.4";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.5";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.6 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.6";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.7 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.7";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.8 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.8";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.9 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"0.9";
+});
+dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.0 * NSEC_PER_SEC), dispatch_get_global_queue(0, 0), ^{
+    inputNode.value = @"1.0";
+});
+
+/* 打印如下：
+下载进度 0.5
+下载进度 1.0
+ */
+```
+
+大家通常都想要在主队列完成监听，所以`throttleOnMainQueue:`方法快速的提供了节流器到主队列的能力：
+
+```objective-c
+EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
+EZRNode<NSString *> *searchNode = [inputNode throttleOnMainQueue:1];
+```
+
+等价于
+
+```objective-c
+EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
+EZRNode<NSString *> *searchNode = [inputNode debounce:1 queue:dispatch_get_main_queue()];
+```
+
+### debounce
+
+Debounce describes such an operation: for the upstream value, if there is a new value in a certain period of time will not pass the old value, if there is no new value waiting for the specified time before passing the previous value Downstream. Because the transfer is asynchronous, throttle operations typically require a GCD queue to tell EasyReact where to pass.
+
+The general debounce operation is used to search input for such a requirement to avoid multiple requests to the network:
+
+```objective-c
+EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
+EZRNode<NSString *> *searchNode = [inputNode debounce:1 queue:dispatch_get_main_queue()]; // <- Unit is second
 
 [[searchNode listenedBy:self] withBlock:^(NSString *next) {
    NSLog(@"You want to search for %@", next);
@@ -601,7 +668,7 @@ We usually want to listen in the main queue, so the `throttleOnMainQueue:` metho
 
 ```objective-c
 EZRMutableNode<NSString *> *inputNode = [EZRMutableNode new];
-EZRNode<NSString *> *searchNode = [inputNode throttleOnMainQueue:1];
+EZRNode<NSString *> *searchNode = [inputNode debounceOnMainQueue:1];
 ```
 
 Equivalent:
