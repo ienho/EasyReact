@@ -29,6 +29,12 @@
     EZR_LOCK_DEF(_sourceLock);
 }
 
+- (void)dealloc {
+    if (_throttleSource) {
+        dispatch_source_cancel(_throttleSource);
+    }
+}
+
 - (instancetype)initWithThrottle:(NSTimeInterval)timeInterval on:(dispatch_queue_t)queue {
     NSParameterAssert(timeInterval > 0);
     NSParameterAssert(queue);
@@ -47,17 +53,14 @@
     _lastValue = value;
     _lastContext = context;
     _lastSenderList = senderList;
-    NSLog(@"value = %@", value);
     if (!_throttleSource) {
-        NSLog(@"new Timer");
         _throttleSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _queue);
         dispatch_source_set_timer(_throttleSource, dispatch_time(DISPATCH_TIME_NOW, _throttleInterval * NSEC_PER_SEC), _throttleInterval * NSEC_PER_SEC, 0.005);
         @ezr_weakify(self)
         dispatch_source_set_event_handler(_throttleSource, ^{
-            NSLog(@"tick");
             @ezr_strongify(self)
             if (!self) {
-                return ;
+                return;
             }
             EZR_SCOPELOCK(self->_sourceLock);
             if (self->_lastValue) {
@@ -66,9 +69,6 @@
                 self->_lastValue = nil;
                 self->_lastSenderList = nil;
                 self->_lastContext = nil;
-            } else {
-            dispatch_source_cancel(self->_throttleSource);
-            self->_throttleSource = nil;
             }
         });
         

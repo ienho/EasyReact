@@ -610,7 +610,8 @@ dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.0 * NSEC_PER_SEC), dispatch_ge
 });
 
 /* 打印如下：
-下载进度 0.5
+下载进度 0.4
+下载进度 0.9
 下载进度 1.0
  */
 ```

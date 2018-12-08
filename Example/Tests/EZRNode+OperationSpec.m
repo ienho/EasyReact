@@ -1338,10 +1338,13 @@ describe(@"EZRNode", ^{
                 });
             });
             
-            // throttle interval time [0.12 - 0.22] r re 【res】
-            // throttle interval time [0.25 - 0.35] 【resu】
-            // throttle interval time [1.20 - 1.32] resul 【result】
-            expect(throttledValue).to(receive(@[@"res", @"resu", @"result"]));
+            // throttle interval time [0.12 - 0.22) r re res ->【res】
+            // throttle interval time [0.22 - 0.32) resu ->【resu】
+            // throttle interval time [0.32 - 0.42) ->【】
+            // ......
+            // throttle interval time [1.12 - 1.22) resul ->【resul】
+            // throttle interval time [1.22 - 1.32) result ->【result】
+            expect(throttledValue).to(receive(@[@"res", @"resu", @"resul", @"result"]));
         });
     
         it(@"throttle should ignores empty values", ^{
